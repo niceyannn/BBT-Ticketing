@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tanda Terima Dokumen</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #2c3e50; font-size: 1.5rem; }
+        label { font-weight: bold; margin-top: 10px; display: block; font-size: 0.9rem; }
+        input, textarea { width: 100%; padding: 12px; margin-top: 5px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+        canvas { border: 1px solid #ccc; border-radius: 6px; width: 100%; height: 150px; background: #fafafa; touch-action: none; margin-top: 5px; margin-bottom: 5px;}
+        button { width: 100%; padding: 12px; background-color: #2980b9; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        button.clear { background-color: #e74c3c; margin-top: 0; margin-bottom: 15px; padding: 8px; font-size: 0.85rem;}
+        hr { border: 0; height: 1px; background: #eee; margin: 30px 0; }
+        .card { border: 1px solid #e0e0e0; padding: 15px; border-radius: 8px; margin-bottom: 15px; background: #fdfdfd; }
+        .card p { margin: 5px 0; font-size: 0.9rem; }
+        .card img { max-height: 80px; margin-top: 10px; border: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Tanda Terima Dokumen</h2>
+    
+    <label>Tanggal & Jam</label>
+    <input type="datetime-local" id="waktu">
+
+    <label>Nama Dokumen</label>
+    <input type="text" id="namaDokumen" placeholder="Contoh: Invoice PT ABC">
+
+    <label>Nama Penyerah</label>
+    <input type="text" id="namaPenyerah" placeholder="Nama yang menyerahkan">
+
+    <label>Nama Penerima</label>
+    <input type="text" id="namaPenerima" placeholder="Nama yang menerima">
+
+    <label>Tanda Tangan Penerima</label>
+    <canvas id="ttdCanvas"></canvas>
+    <button class="clear" onclick="hapusTTD()">Hapus Tanda Tangan</button>
+
+    <label>Keterangan</label>
+    <textarea id="keterangan" rows="3" placeholder="Catatan tambahan..."></textarea>
+
+    <button onclick="simpanData()">Simpan Tanda Terima</button>
+
+    <hr>
+
+    <h2>Lacak Dokumen</h2>
+    <input type="text" id="pencarian" placeholder="Cari nama dokumen atau penerima..." onkeyup="tampilkanData()">
+    
+    <div id="hasilPencarian"></div>
+</div>
+
+<script>
+    // Inisialisasi Waktu Saat Ini
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    document.getElementById('waktu').value = now.toISOString().slice(0,16);
+
+    // Setup Canvas Tanda Tangan
+    const canvas = document.getElementById('ttdCanvas');
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
+
+    // Sesuaikan resolusi canvas
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+
+    function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+
+    function startPos(e) { e.preventDefault(); isDrawing = true; draw(e); }
+    function endPos() { isDrawing = false; ctx.beginPath(); }
+    function draw(e) {
+        if (!isDrawing) return;
+        e.preventDefault();
+        const pos = getPos(e);
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#000';
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+    }
+
+    canvas.addEventListener('touchstart', startPos);
+    canvas.addEventListener('touchmove', draw);
+    canvas.addEventListener('touchend', endPos);
+    canvas.addEventListener('mousedown', startPos);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', endPos);
+
+    function hapusTTD() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Fungsi Simpan Data
+    function simpanData() {
+        const waktu = document.getElementById('waktu').value;
+        const namaDokumen = document.getElementById('namaDokumen').value;
+        const namaPenyerah = document.getElementById('namaPenyerah').value;
+        const namaPenerima = document.getElementById('namaPenerima').value;
+        const keterangan = document.getElementById('keterangan').value;
+        const ttdDataUrl = canvas.toDataURL();
+
+        if(!namaDokumen || !namaPenerima) {
+            alert("Nama Dokumen dan Nama Penerima wajib diisi!");
+            return;
+        }
+
+        const dokumenBaru = { waktu, namaDokumen, namaPenyerah, namaPenerima, keterangan, ttd: ttdDataUrl };
+        
+        let database = JSON.parse(localStorage.getItem('databaseDokumen')) || [];
+        database.push(dokumenBaru);
+        localStorage.setItem('databaseDokumen', JSON.stringify(database));
+
+        alert("Tanda terima berhasil disimpan!");
+        
+        // Reset Form
+        document.getElementById('namaDokumen').value = '';
+        document.getElementById('namaPenyerah').value = '';
+        document.getElementById('namaPenerima').value = '';
+        document.getElementById('keterangan').value = '';
+        hapusTTD();
+        tampilkanData();
+    }
+
+    // Fungsi Tampilkan & Cari Data
+    function tampilkanData() {
+        const query = document.getElementById('pencarian').value.toLowerCase();
+        let database = JSON.parse(localStorage.getItem('databaseDokumen')) || [];
+        const divHasil = document.getElementById('hasilPencarian');
+        divHasil.innerHTML = '';
+
+        const hasilFilter = database.filter(doc => 
+            doc.namaDokumen.toLowerCase().includes(query) || 
+            doc.namaPenerima.toLowerCase().includes(query)
+        );
+
+        // Tampilkan dari yang paling baru
+        hasilFilter.reverse().forEach(doc => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <p><strong>🕒 Waktu:</strong> ${doc.waktu.replace('T', ' ')}</p>
+                <p><strong>📄 Dokumen:</strong> ${doc.namaDokumen}</p>
+                <p><strong>📤 Penyerah:</strong> ${doc.namaPenyerah}</p>
+                <p><strong>📥 Penerima:</strong> ${doc.namaPenerima}</p>
+                <p><strong>📝 Ket:</strong> ${doc.keterangan}</p>
+                <p><strong>✍️ Tanda Tangan:</strong></p>
+                <img src="${doc.ttd}" alt="Tanda Tangan">
+            `;
+            divHasil.appendChild(card);
+        });
+    }
+
+    // Load data saat pertama kali buka
+    tampilkanData();
+</script>
+</body>
+</html>
