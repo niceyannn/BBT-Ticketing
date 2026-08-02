@@ -3,70 +3,122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tanda Terima Dokumen</title>
+    <title>Aplikasi Dokumen & Tiket</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f4f7f6; margin: 0; padding: 15px; color: #333; }
         .container { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #2c3e50; font-size: 1.5rem; }
+        .tabs { display: flex; margin-bottom: 20px; border-radius: 6px; overflow: hidden; border: 1px solid #2980b9;}
+        .tab { flex: 1; text-align: center; padding: 12px; background: #fff; cursor: pointer; font-weight: bold; color: #2980b9; }
+        .tab.active { background: #2980b9; color: white; }
+        .halaman { display: none; }
+        .halaman.active { display: block; }
         label { font-weight: bold; margin-top: 10px; display: block; font-size: 0.9rem; }
-        input, textarea { width: 100%; padding: 12px; margin-top: 5px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
-        canvas { border: 1px solid #ccc; border-radius: 6px; width: 100%; height: 150px; background: #fafafa; touch-action: none; margin-top: 5px; margin-bottom: 5px;}
-        button { width: 100%; padding: 12px; background-color: #2980b9; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        button.clear { background-color: #e74c3c; margin-top: 0; margin-bottom: 15px; padding: 8px; font-size: 0.85rem;}
-        hr { border: 0; height: 1px; background: #eee; margin: 30px 0; }
-        .card { border: 1px solid #e0e0e0; padding: 15px; border-radius: 8px; margin-bottom: 15px; background: #fdfdfd; }
+        input, textarea, select { width: 100%; padding: 12px; margin-top: 5px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+        canvas { border: 1px solid #ccc; border-radius: 6px; width: 100%; height: 150px; background: #fafafa; touch-action: none; margin-bottom: 5px;}
+        button { width: 100%; padding: 12px; background-color: #27ae60; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; }
+        button.clear { background-color: #e74c3c; margin-top: 5px; margin-bottom: 15px; padding: 8px; font-size: 0.85rem;}
+        button.refresh { background-color: #f39c12; margin-top: 10px; }
+        button:disabled { background-color: #95a5a6; cursor: not-allowed; }
+        .card { border: 1px solid #e0e0e0; padding: 15px; border-radius: 8px; margin-top: 15px; background: #fdfdfd; }
         .card p { margin: 5px 0; font-size: 0.9rem; }
         .card img { max-height: 80px; margin-top: 10px; border: 1px solid #ddd; }
+        hr { border: 0; height: 1px; background: #eee; margin: 30px 0; }
+        .loading-text { text-align: center; font-style: italic; color: #7f8c8d; font-size: 0.9rem; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Tanda Terima Dokumen</h2>
-    
-    <label>Tanggal & Jam</label>
-    <input type="datetime-local" id="waktu">
+    <div class="tabs">
+        <div class="tab active" onclick="pindahTab('tandaTerimaTab', this)">Tanda Terima</div>
+        <div class="tab" onclick="pindahTab('tiketTab', this)">Tiket Emerald</div>
+    </div>
 
-    <label>Nama Dokumen</label>
-    <input type="text" id="namaDokumen" placeholder="Contoh: Invoice PT ABC">
+    <!-- HALAMAN TANDA TERIMA -->
+    <div id="tandaTerimaTab" class="halaman active">
+        <label>Tanggal & Jam</label>
+        <input type="datetime-local" id="waktu1">
+        
+        <label>Nama Dokumen</label>
+        <input type="text" id="namaDokumen" placeholder="Contoh: Invoice PT ABC">
+        
+        <label>Nama Penyerah</label>
+        <input type="text" id="namaPenyerah" placeholder="Nama yang menyerahkan">
+        
+        <label>Nama Penerima</label>
+        <input type="text" id="namaPenerima" placeholder="Nama yang menerima">
+        
+        <label>Tanda Tangan Penerima</label>
+        <canvas id="ttdCanvas"></canvas>
+        <button class="clear" onclick="hapusTTD()">Hapus Tanda Tangan</button>
+        
+        <label>Keterangan</label>
+        <textarea id="keterangan" rows="3" placeholder="Catatan..."></textarea>
+        
+        <button id="btnSimpan1" onclick="simpanTandaTerima()">Simpan Dokumen</button>
+        <div id="status1" class="loading-text"></div>
 
-    <label>Nama Penyerah</label>
-    <input type="text" id="namaPenyerah" placeholder="Nama yang menyerahkan">
+        <hr>
+        <label>Lacak Dokumen (Berdasarkan Nama Dok/Penerima)</label>
+        <input type="text" id="cariDokumen" placeholder="Ketik untuk mencari di lokal..." onkeyup="filterLokal('hasilDokumen', this.value)">
+        <button class="refresh" onclick="muatData('Tanda Terima', 'hasilDokumen')">Muat Ulang Data dari Server</button>
+        <div id="hasilDokumen"></div>
+    </div>
 
-    <label>Nama Penerima</label>
-    <input type="text" id="namaPenerima" placeholder="Nama yang menerima">
+    <!-- HALAMAN TIKET EMERALD -->
+    <div id="tiketTab" class="halaman">
+        <label>Tanggal & Jam</label>
+        <input type="datetime-local" id="waktu2">
+        
+        <label>Nomor Booking</label>
+        <input type="text" id="noBooking" placeholder="Contoh: EMR12345">
+        
+        <label>Jumlah Penumpang</label>
+        <input type="number" id="jumlahPenumpang" placeholder="Jumlah penumpang dlm tiket ini">
+        
+        <label>Nama Penerima</label>
+        <input type="text" id="namaPenerimaTiket" placeholder="Nama penerima tiket">
+        
+        <button id="btnSimpan2" onclick="simpanTiket()">Simpan Tiket</button>
+        <div id="status2" class="loading-text"></div>
 
-    <label>Tanda Tangan Penerima</label>
-    <canvas id="ttdCanvas"></canvas>
-    <button class="clear" onclick="hapusTTD()">Hapus Tanda Tangan</button>
-
-    <label>Keterangan</label>
-    <textarea id="keterangan" rows="3" placeholder="Catatan tambahan..."></textarea>
-
-    <button onclick="simpanData()">Simpan Tanda Terima</button>
-
-    <hr>
-
-    <h2>Lacak Dokumen</h2>
-    <input type="text" id="pencarian" placeholder="Cari nama dokumen atau penerima..." onkeyup="tampilkanData()">
-    
-    <div id="hasilPencarian"></div>
+        <hr>
+        <label>Lacak Tiket (Berdasarkan No Booking/Penerima)</label>
+        <input type="text" id="cariTiket" placeholder="Ketik untuk mencari di lokal..." onkeyup="filterLokal('hasilTiket', this.value)">
+        <button class="refresh" onclick="muatData('Tiket Emerald', 'hasilTiket')">Muat Ulang Data dari Server</button>
+        <div id="hasilTiket"></div>
+    </div>
 </div>
 
 <script>
-    // Inisialisasi Waktu Saat Ini
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    document.getElementById('waktu').value = now.toISOString().slice(0,16);
+    // MASUKKAN LINK URL APPS SCRIPT-MU DI BAWAH INI
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxLhlo-R9VY6J-hxlo3pO4JquvN-vW5OpVd37GkBkh5OYC-6z1bywH_xKbt5TlBT3pX/exec"; 
 
-    // Setup Canvas Tanda Tangan
+    // Setup Waktu Default
+    function setWaktuSaatIni(idInput) {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById(idInput).value = now.toISOString().slice(0,16);
+    }
+    setWaktuSaatIni('waktu1');
+    setWaktuSaatIni('waktu2');
+
+    // Setup Tab Navigasi
+    function pindahTab(idHalaman, elemenTab) {
+        document.querySelectorAll('.halaman').forEach(h => h.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(idHalaman).classList.add('active');
+        elemenTab.classList.add('active');
+        // Muat data saat tab diklik jika belum ada data
+        if(idHalaman === 'tandaTerimaTab') muatData('Tanda Terima', 'hasilDokumen');
+        if(idHalaman === 'tiketTab') muatData('Tiket Emerald', 'hasilTiket');
+    }
+
+    // Setup Canvas Tanda Tangan (Sama seperti sebelumnya)
     const canvas = document.getElementById('ttdCanvas');
     const ctx = canvas.getContext('2d');
     let isDrawing = false;
-
-    // Sesuaikan resolusi canvas
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
+    setTimeout(() => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; }, 100);
 
     function getPos(e) {
         const rect = canvas.getBoundingClientRect();
@@ -74,95 +126,161 @@
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         return { x: clientX - rect.left, y: clientY - rect.top };
     }
-
     function startPos(e) { e.preventDefault(); isDrawing = true; draw(e); }
     function endPos() { isDrawing = false; ctx.beginPath(); }
     function draw(e) {
         if (!isDrawing) return;
         e.preventDefault();
         const pos = getPos(e);
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
-        ctx.strokeStyle = '#000';
-        ctx.lineTo(pos.x, pos.y);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(pos.x, pos.y);
+        ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = '#000';
+        ctx.lineTo(pos.x, pos.y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(pos.x, pos.y);
+    }
+    canvas.addEventListener('touchstart', startPos); canvas.addEventListener('touchmove', draw);
+    canvas.addEventListener('touchend', endPos); canvas.addEventListener('mousedown', startPos);
+    canvas.addEventListener('mousemove', draw); canvas.addEventListener('mouseup', endPos);
+    
+    function hapusTTD() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+
+    // Fungsi Kirim Data (POST ke Google Sheets)
+    async function kirimKeServer(data, btnId, statusId) {
+        const btn = document.getElementById(btnId);
+        const status = document.getElementById(statusId);
+        btn.disabled = true;
+        status.innerText = "Sedang menyimpan ke cloud, mohon tunggu...";
+
+        try {
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify(data),
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' } // text/plain menghindari preflight error
+            });
+            alert("Data berhasil disimpan ke Google Sheets!");
+        } catch (error) {
+            alert("Terjadi kesalahan saat menyimpan!");
+        } finally {
+            btn.disabled = false;
+            status.innerText = "";
+        }
     }
 
-    canvas.addEventListener('touchstart', startPos);
-    canvas.addEventListener('touchmove', draw);
-    canvas.addEventListener('touchend', endPos);
-    canvas.addEventListener('mousedown', startPos);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', endPos);
+    // Simpan Tanda Terima
+    function simpanTandaTerima() {
+        const wkt = document.getElementById('waktu1').value;
+        const namaD = document.getElementById('namaDokumen').value;
+        const pny = document.getElementById('namaPenyerah').value;
+        const pnr = document.getElementById('namaPenerima').value;
+        const ket = document.getElementById('keterangan').value;
+        const ttdData = canvas.toDataURL();
 
-    function hapusTTD() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if(!namaD || !pnr) return alert("Nama Dokumen dan Penerima wajib diisi!");
+
+        const dataKirim = {
+            action: "simpanTandaTerima", sheetName: "Tanda Terima",
+            waktu: wkt.replace('T', ' '), namaDokumen: namaD, namaPenyerah: pny, namaPenerima: pnr, keterangan: ket, ttd: ttdData
+        };
+
+        kirimKeServer(dataKirim, 'btnSimpan1', 'status1').then(() => {
+            document.getElementById('namaDokumen').value = '';
+            document.getElementById('namaPenyerah').value = '';
+            document.getElementById('namaPenerima').value = '';
+            document.getElementById('keterangan').value = '';
+            hapusTTD(); setWaktuSaatIni('waktu1');
+            muatData('Tanda Terima', 'hasilDokumen');
+        });
     }
 
-    // Fungsi Simpan Data
-    function simpanData() {
-        const waktu = document.getElementById('waktu').value;
-        const namaDokumen = document.getElementById('namaDokumen').value;
-        const namaPenyerah = document.getElementById('namaPenyerah').value;
-        const namaPenerima = document.getElementById('namaPenerima').value;
-        const keterangan = document.getElementById('keterangan').value;
-        const ttdDataUrl = canvas.toDataURL();
+    // Simpan Tiket
+    function simpanTiket() {
+        const wkt = document.getElementById('waktu2').value;
+        const noB = document.getElementById('noBooking').value;
+        const jml = document.getElementById('jumlahPenumpang').value;
+        const pnr = document.getElementById('namaPenerimaTiket').value;
 
-        if(!namaDokumen || !namaPenerima) {
-            alert("Nama Dokumen dan Nama Penerima wajib diisi!");
+        if(!noB || !pnr) return alert("Nomor Booking dan Penerima wajib diisi!");
+
+        const dataKirim = {
+            action: "simpanTiket", sheetName: "Tiket Emerald",
+            waktu: wkt.replace('T', ' '), noBooking: noB, jumlahPenumpang: jml, namaPenerima: pnr
+        };
+
+        kirimKeServer(dataKirim, 'btnSimpan2', 'status2').then(() => {
+            document.getElementById('noBooking').value = '';
+            document.getElementById('jumlahPenumpang').value = '';
+            document.getElementById('namaPenerimaTiket').value = '';
+            setWaktuSaatIni('waktu2');
+            muatData('Tiket Emerald', 'hasilTiket');
+        });
+    }
+
+    // Variabel Global untuk menyimpan data lokal pencarian
+    let dataCache = { 'Tanda Terima': [], 'Tiket Emerald': [] };
+
+    // Fungsi Ambil Data (GET dari Google Sheets)
+    async function muatData(sheetName, divId) {
+        const divHasil = document.getElementById(divId);
+        divHasil.innerHTML = '<p class="loading-text">Sedang mengambil data dari server...</p>';
+        
+        try {
+            const response = await fetch(SCRIPT_URL + "?sheetName=" + encodeURIComponent(sheetName));
+            const arrayData = await response.json();
+            
+            // Hapus baris pertama (Judul Kolom) dan simpan ke cache
+            dataCache[sheetName] = arrayData.slice(1).reverse(); 
+            tampilkanKeLayar(sheetName, divId, dataCache[sheetName]);
+        } catch (error) {
+            divHasil.innerHTML = '<p class="loading-text" style="color:red;">Gagal memuat data. Pastikan ada koneksi internet.</p>';
+        }
+    }
+
+    function tampilkanKeLayar(sheetName, divId, dataFilter) {
+        const divHasil = document.getElementById(divId);
+        divHasil.innerHTML = '';
+        if(dataFilter.length === 0) {
+            divHasil.innerHTML = '<p style="text-align:center; color:#888;">Belum ada data / tidak ditemukan.</p>';
             return;
         }
 
-        const dokumenBaru = { waktu, namaDokumen, namaPenyerah, namaPenerima, keterangan, ttd: ttdDataUrl };
-        
-        let database = JSON.parse(localStorage.getItem('databaseDokumen')) || [];
-        database.push(dokumenBaru);
-        localStorage.setItem('databaseDokumen', JSON.stringify(database));
-
-        alert("Tanda terima berhasil disimpan!");
-        
-        // Reset Form
-        document.getElementById('namaDokumen').value = '';
-        document.getElementById('namaPenyerah').value = '';
-        document.getElementById('namaPenerima').value = '';
-        document.getElementById('keterangan').value = '';
-        hapusTTD();
-        tampilkanData();
-    }
-
-    // Fungsi Tampilkan & Cari Data
-    function tampilkanData() {
-        const query = document.getElementById('pencarian').value.toLowerCase();
-        let database = JSON.parse(localStorage.getItem('databaseDokumen')) || [];
-        const divHasil = document.getElementById('hasilPencarian');
-        divHasil.innerHTML = '';
-
-        const hasilFilter = database.filter(doc => 
-            doc.namaDokumen.toLowerCase().includes(query) || 
-            doc.namaPenerima.toLowerCase().includes(query)
-        );
-
-        // Tampilkan dari yang paling baru
-        hasilFilter.reverse().forEach(doc => {
+        dataFilter.forEach(baris => {
             const card = document.createElement('div');
             card.className = 'card';
-            card.innerHTML = `
-                <p><strong>🕒 Waktu:</strong> ${doc.waktu.replace('T', ' ')}</p>
-                <p><strong>📄 Dokumen:</strong> ${doc.namaDokumen}</p>
-                <p><strong>📤 Penyerah:</strong> ${doc.namaPenyerah}</p>
-                <p><strong>📥 Penerima:</strong> ${doc.namaPenerima}</p>
-                <p><strong>📝 Ket:</strong> ${doc.keterangan}</p>
-                <p><strong>✍️ Tanda Tangan:</strong></p>
-                <img src="${doc.ttd}" alt="Tanda Tangan">
-            `;
+            if(sheetName === 'Tanda Terima') {
+                card.innerHTML = `
+                    <p><strong>🕒 Waktu:</strong> ${baris[0]}</p>
+                    <p><strong>📄 Dokumen:</strong> ${baris[1]}</p>
+                    <p><strong>📤 Penyerah:</strong> ${baris[2]}</p>
+                    <p><strong>📥 Penerima:</strong> ${baris[3]}</p>
+                    <p><strong>📝 Ket:</strong> ${baris[4]}</p>
+                    <p><strong>✍️ Tanda Tangan:</strong></p>
+                    ${baris[5] ? `<img src="${baris[5]}" alt="TTD">` : ''}
+                `;
+            } else {
+                card.innerHTML = `
+                    <p><strong>🕒 Waktu:</strong> ${baris[0]}</p>
+                    <p><strong>🔖 No Booking:</strong> ${baris[1]}</p>
+                    <p><strong>👥 Penumpang:</strong> ${baris[2]} Orang</p>
+                    <p><strong>📥 Penerima:</strong> ${baris[3]}</p>
+                `;
+            }
             divHasil.appendChild(card);
         });
     }
 
-    // Load data saat pertama kali buka
-    tampilkanData();
+    // Fungsi Pencarian Lokal
+    function filterLokal(divId, kataKunci) {
+        const sheetName = divId === 'hasilDokumen' ? 'Tanda Terima' : 'Tiket Emerald';
+        const query = kataKunci.toLowerCase();
+        
+        const hasilFilter = dataCache[sheetName].filter(baris => {
+            // Gabungkan semua kolom menjadi satu teks, lalu cari kata kuncinya
+            const isiBaris = baris.join(' ').toLowerCase();
+            return isiBaris.includes(query);
+        });
+        
+        tampilkanKeLayar(sheetName, divId, hasilFilter);
+    }
+
+    // Muat data saat pertama buka
+    muatData('Tanda Terima', 'hasilDokumen');
 </script>
 </body>
 </html>
