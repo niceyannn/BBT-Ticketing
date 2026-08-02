@@ -3,39 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikasi Dokumen & Tiket</title>
+    <title>Sistem Manajemen Dokumen & Tiket</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f4f7f6; margin: 0; padding: 15px; color: #333; }
         .container { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .tabs { display: flex; margin-bottom: 20px; border-radius: 6px; overflow: hidden; border: 1px solid #2980b9;}
-        .tab { flex: 1; text-align: center; padding: 12px; background: #fff; cursor: pointer; font-weight: bold; color: #2980b9; }
-        .tab.active { background: #2980b9; color: white; }
         .halaman { display: none; }
         .halaman.active { display: block; }
+        
+        /* MENU UTAMA */
+        .menu-utama { text-align: center; padding: 20px 0; }
+        .menu-utama h2 { color: #2c3e50; margin-bottom: 5px; }
+        .menu-utama p { color: #7f8c8d; margin-bottom: 30px; font-size: 0.95rem; }
+        .btn-menu { display: flex; align-items: center; justify-content: center; width: 100%; padding: 18px; margin-bottom: 15px; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; color: white; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .btn-menu.dokumen { background-color: #2980b9; }
+        .btn-menu.tiket { background-color: #16a085; }
+        .btn-menu:active { transform: scale(0.98); }
+        
+        /* FORM & ELEMEN */
+        .header-halaman { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .header-halaman h3 { margin: 0; color: #2c3e50; font-size: 1.1rem; }
+        .btn-kembali { background: #ecf0f1; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; color: #34495e; cursor: pointer; font-size: 0.85rem; }
         label { font-weight: bold; margin-top: 10px; display: block; font-size: 0.9rem; }
-        input, textarea, select { width: 100%; padding: 12px; margin-top: 5px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+        input, textarea { width: 100%; padding: 12px; margin-top: 5px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
         canvas { border: 1px solid #ccc; border-radius: 6px; width: 100%; height: 150px; background: #fafafa; touch-action: none; margin-bottom: 5px;}
-        button { width: 100%; padding: 12px; background-color: #27ae60; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; }
-        button.clear { background-color: #e74c3c; margin-top: 5px; margin-bottom: 15px; padding: 8px; font-size: 0.85rem;}
-        button.refresh { background-color: #f39c12; margin-top: 10px; }
+        button.action { width: 100%; padding: 12px; background-color: #27ae60; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 5px;}
+        button.clear { width: 100%; background-color: #e74c3c; color: white; border: none; border-radius: 6px; margin-top: 5px; margin-bottom: 15px; padding: 8px; font-size: 0.85rem; cursor: pointer;}
+        button.refresh { width: 100%; background-color: #f39c12; color: white; border: none; border-radius: 6px; margin-top: 10px; padding: 10px; font-weight: bold; cursor: pointer;}
+        button.btn-reset { background: #95a5a6; color: white; border: none; padding: 10px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; width: 100%; margin-bottom: 10px; font-weight: bold;}
         button:disabled { background-color: #95a5a6; cursor: not-allowed; }
-        .card { border: 1px solid #e0e0e0; padding: 15px; border-radius: 8px; margin-top: 15px; background: #fdfdfd; }
+        
+        /* CARD HASIL */
+        .card { border: 1px solid #e0e0e0; padding: 15px; border-radius: 8px; margin-top: 12px; background: #fdfdfd; border-left: 5px solid #2980b9; }
+        .card.card-tiket { border-left-color: #16a085; }
         .card p { margin: 5px 0; font-size: 0.9rem; }
         .card img { max-height: 80px; margin-top: 10px; border: 1px solid #ddd; }
-        hr { border: 0; height: 1px; background: #eee; margin: 30px 0; }
+        hr { border: 0; height: 1px; background: #eee; margin: 25px 0; }
         .loading-text { text-align: center; font-style: italic; color: #7f8c8d; font-size: 0.9rem; margin-top: 10px; }
+        .filter-box { background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #e9ecef; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="tabs">
-        <div class="tab active" onclick="pindahTab('tandaTerimaTab', this)">Tanda Terima</div>
-        <div class="tab" onclick="pindahTab('tiketTab', this)">Tiket Emerald</div>
+
+    <!-- 1. HALAMAN UTAMA (MENU PILIHAN) -->
+    <div id="halamanUtama" class="halaman active menu-utama">
+        <h2>Pilih Layanan</h2>
+        <p>Silakan pilih sistem yang ingin Anda kelola saat ini:</p>
+        
+        <button class="btn-menu dokumen" onclick="pindahHalaman('halamanDokumen')">
+            📄 Tanda Terima Dokumen
+        </button>
+        
+        <button class="btn-menu tiket" onclick="pindahHalaman('halamanTiket')">
+            🎟️ Kontrol Tiket Emerald
+        </button>
     </div>
 
-    <!-- HALAMAN TANDA TERIMA -->
-    <div id="tandaTerimaTab" class="halaman active">
+    <!-- 2. HALAMAN TANDA TERIMA DOKUMEN -->
+    <div id="halamanDokumen" class="halaman">
+        <div class="header-halaman">
+            <h3>Tanda Terima Dokumen</h3>
+            <button class="btn-kembali" onclick="pindahHalaman('halamanUtama')">⬅ Kembali</button>
+        </div>
+
         <label>Tanggal & Jam</label>
         <input type="datetime-local" id="waktu1">
         
@@ -55,18 +86,30 @@
         <label>Keterangan</label>
         <textarea id="keterangan" rows="3" placeholder="Catatan..."></textarea>
         
-        <button id="btnSimpan1" onclick="simpanTandaTerima()">Simpan Dokumen</button>
+        <button class="action" id="btnSimpan1" onclick="simpanTandaTerima()">Simpan Dokumen</button>
         <div id="status1" class="loading-text"></div>
 
         <hr>
-        <label>Lacak Dokumen (Berdasarkan Nama Dok/Penerima)</label>
-        <input type="text" id="cariDokumen" placeholder="Ketik untuk mencari di lokal..." onkeyup="filterLokal('hasilDokumen', this.value)">
-        <button class="refresh" onclick="muatData('Tanda Terima', 'hasilDokumen')">Muat Ulang Data dari Server</button>
+        
+        <!-- BAGIAN FILTER DOKUMEN -->
+        <div class="filter-box">
+            <label style="margin-top:0;">🔍 Filter Hari / Nama Dokumen:</label>
+            <input type="date" id="filterTanggalDok" onchange="filterDokumen()">
+            <input type="text" id="cariDokumen" placeholder="Cari nama dokumen / penerima..." onkeyup="filterDokumen()">
+            <button class="btn-reset" onclick="resetFilterDokumen()">Tampilkan Semua Hari</button>
+        </div>
+
+        <button class="refresh" onclick="muatData('Tanda Terima', 'hasilDokumen')">🔄 Muat Ulang Data dari Server</button>
         <div id="hasilDokumen"></div>
     </div>
 
-    <!-- HALAMAN TIKET EMERALD -->
-    <div id="tiketTab" class="halaman">
+    <!-- 3. HALAMAN TIKET EMERALD -->
+    <div id="halamanTiket" class="halaman">
+        <div class="header-halaman">
+            <h3>Kontrol Tiket Emerald</h3>
+            <button class="btn-kembali" onclick="pindahHalaman('halamanUtama')">⬅ Kembali</button>
+        </div>
+
         <label>Tanggal & Jam</label>
         <input type="datetime-local" id="waktu2">
         
@@ -79,15 +122,24 @@
         <label>Nama Penerima</label>
         <input type="text" id="namaPenerimaTiket" placeholder="Nama penerima tiket">
         
-        <button id="btnSimpan2" onclick="simpanTiket()">Simpan Tiket</button>
+        <button class="action" id="btnSimpan2" onclick="simpanTiket()">Simpan Tiket</button>
         <div id="status2" class="loading-text"></div>
 
         <hr>
-        <label>Lacak Tiket (Berdasarkan No Booking/Penerima)</label>
-        <input type="text" id="cariTiket" placeholder="Ketik untuk mencari di lokal..." onkeyup="filterLokal('hasilTiket', this.value)">
-        <button class="refresh" onclick="muatData('Tiket Emerald', 'hasilTiket')">Muat Ulang Data dari Server</button>
+        
+        <!-- BAGIAN FILTER TIKET -->
+        <div class="filter-box">
+            <label style="margin-top:0;">📅 Filter Hari (Otomatis Hari Ini):</label>
+            <input type="date" id="filterTanggalTiket" onchange="filterTiket()">
+            
+            <label>🔍 Cari Nomor Booking / Penerima:</label>
+            <input type="text" id="cariTiket" placeholder="Ketik nomor booking..." onkeyup="filterTiket()" style="margin-bottom:0;">
+        </div>
+
+        <button class="refresh" onclick="muatData('Tiket Emerald', 'hasilTiket')">🔄 Muat Ulang Data dari Server</button>
         <div id="hasilTiket"></div>
     </div>
+
 </div>
 
 <script>
@@ -100,25 +152,42 @@
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
         document.getElementById(idInput).value = now.toISOString().slice(0,16);
     }
+    
+    // Fungsi untuk mendapatkan tanggal hari ini format YYYY-MM-DD
+    function getTanggalHariIni() {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        return now.toISOString().slice(0,10);
+    }
+
     setWaktuSaatIni('waktu1');
     setWaktuSaatIni('waktu2');
 
-    // Setup Tab Navigasi
-    function pindahTab(idHalaman, elemenTab) {
+    // Setup Navigasi Halaman
+    function pindahHalaman(idHalaman) {
         document.querySelectorAll('.halaman').forEach(h => h.classList.remove('active'));
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.getElementById(idHalaman).classList.add('active');
-        elemenTab.classList.add('active');
-        // Muat data saat tab diklik jika belum ada data
-        if(idHalaman === 'tandaTerimaTab') muatData('Tanda Terima', 'hasilDokumen');
-        if(idHalaman === 'tiketTab') muatData('Tiket Emerald', 'hasilTiket');
+        
+        if(idHalaman === 'halamanDokumen') {
+            muatData('Tanda Terima', 'hasilDokumen');
+            setTimeout(() => { resizeCanvas(); }, 100);
+        }
+        if(idHalaman === 'halamanTiket') {
+            // Otomatis set filter ke hari ini saat halaman tiket dibuka
+            document.getElementById('filterTanggalTiket').value = getTanggalHariIni();
+            muatData('Tiket Emerald', 'hasilTiket');
+        }
     }
 
-    // Setup Canvas Tanda Tangan (Sama seperti sebelumnya)
+    // Setup Canvas Tanda Tangan
     const canvas = document.getElementById('ttdCanvas');
     const ctx = canvas.getContext('2d');
     let isDrawing = false;
-    setTimeout(() => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; }, 100);
+    
+    function resizeCanvas() {
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+    }
 
     function getPos(e) {
         const rect = canvas.getBoundingClientRect();
@@ -152,7 +221,7 @@
             await fetch(SCRIPT_URL, {
                 method: 'POST',
                 body: JSON.stringify(data),
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' } // text/plain menghindari preflight error
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' }
             });
             alert("Data berhasil disimpan ke Google Sheets!");
         } catch (error) {
@@ -212,7 +281,7 @@
         });
     }
 
-    // Variabel Global untuk menyimpan data lokal pencarian
+    // Cache Data Lokal
     let dataCache = { 'Tanda Terima': [], 'Tiket Emerald': [] };
 
     // Fungsi Ambil Data (GET dari Google Sheets)
@@ -224,9 +293,15 @@
             const response = await fetch(SCRIPT_URL + "?sheetName=" + encodeURIComponent(sheetName));
             const arrayData = await response.json();
             
-            // Hapus baris pertama (Judul Kolom) dan simpan ke cache
-            dataCache[sheetName] = arrayData.slice(1).reverse(); 
-            tampilkanKeLayar(sheetName, divId, dataCache[sheetName]);
+            // Simpan ke cache tanpa header baris pertama
+            dataCache[sheetName] = arrayData.slice(1);
+            
+            // Terapkan filter sesuai tab yang aktif
+            if(sheetName === 'Tanda Terima') {
+                filterDokumen();
+            } else {
+                filterTiket();
+            }
         } catch (error) {
             divHasil.innerHTML = '<p class="loading-text" style="color:red;">Gagal memuat data. Pastikan ada koneksi internet.</p>';
         }
@@ -236,13 +311,14 @@
         const divHasil = document.getElementById(divId);
         divHasil.innerHTML = '';
         if(dataFilter.length === 0) {
-            divHasil.innerHTML = '<p style="text-align:center; color:#888;">Belum ada data / tidak ditemukan.</p>';
+            divHasil.innerHTML = '<p style="text-align:center; color:#888;">Data tidak ditemukan pada tanggal / pencarian ini.</p>';
             return;
         }
 
         dataFilter.forEach(baris => {
             const card = document.createElement('div');
-            card.className = 'card';
+            card.className = sheetName === 'Tanda Terima' ? 'card' : 'card card-tiket';
+            
             if(sheetName === 'Tanda Terima') {
                 card.innerHTML = `
                     <p><strong>🕒 Waktu:</strong> ${baris[0]}</p>
@@ -265,22 +341,50 @@
         });
     }
 
-    // Fungsi Pencarian Lokal
-    function filterLokal(divId, kataKunci) {
-        const sheetName = divId === 'hasilDokumen' ? 'Tanda Terima' : 'Tiket Emerald';
-        const query = kataKunci.toLowerCase();
-        
-        const hasilFilter = dataCache[sheetName].filter(baris => {
-            // Gabungkan semua kolom menjadi satu teks, lalu cari kata kuncinya
-            const isiBaris = baris.join(' ').toLowerCase();
-            return isiBaris.includes(query);
+    // 1. FILTER KHUSUS TANDA TERIMA DOKUMEN
+    function filterDokumen() {
+        const tglFilter = document.getElementById('filterTanggalDok').value; // YYYY-MM-DD
+        const kataKunci = document.getElementById('cariDokumen').value.toLowerCase();
+
+        let hasil = dataCache['Tanda Terima'].filter(baris => {
+            const waktuStr = String(baris[0]); // Contoh: "2026-08-02 14:30"
+            const cocokTanggal = tglFilter ? waktuStr.startsWith(tglFilter) : true;
+            const cocokNama = String(baris[1]).toLowerCase().includes(kataKunci) || 
+                              String(baris[3]).toLowerCase().includes(kataKunci);
+            return cocokTanggal && cocokNama;
         });
-        
-        tampilkanKeLayar(sheetName, divId, hasilFilter);
+
+        // Urutkan dari yang terbaru ke terlama
+        hasil.reverse();
+        tampilkanKeLayar('Tanda Terima', 'hasilDokumen', hasil);
     }
 
-    // Muat data saat pertama buka
-    muatData('Tanda Terima', 'hasilDokumen');
+    function resetFilterDokumen() {
+        document.getElementById('filterTanggalDok').value = '';
+        document.getElementById('cariDokumen').value = '';
+        filterDokumen();
+    }
+
+    // 2. FILTER KHUSUS TIKET EMERALD (Otomatis Hari Ini & Urut Jam)
+    function filterTiket() {
+        const tglFilter = document.getElementById('filterTanggalTiket').value; // YYYY-MM-DD
+        const kataKunci = document.getElementById('cariTiket').value.toLowerCase();
+
+        let hasil = dataCache['Tiket Emerald'].filter(baris => {
+            const waktuStr = String(baris[0]);
+            const cocokTanggal = tglFilter ? waktuStr.startsWith(tglFilter) : true;
+            const cocokBooking = String(baris[1]).toLowerCase().includes(kataKunci) || 
+                                 String(baris[3]).toLowerCase().includes(kataKunci);
+            return cocokTanggal && cocokBooking;
+        });
+
+        // URUTKAN BERDASARKAN JAM BERURUTAN (Terkecil/Pagi -> Terbesar/Malam)
+        hasil.sort((a, b) => {
+            return String(a[0]).localeCompare(String(b[0]));
+        });
+
+        tampilkanKeLayar('Tiket Emerald', 'hasilTiket', hasil);
+    }
 </script>
 </body>
 </html>
