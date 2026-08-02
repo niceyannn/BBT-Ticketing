@@ -153,15 +153,28 @@
 
 <script>
     // MASUKKAN LINK URL APPS SCRIPT-MU DI BAWAH INI
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxLhlo-R9VY6J-hxlo3pO4JquvN-vW5OpVd37GkBkh5OYC-6z1bywH_xKbt5TlBT3pX/exec"; 
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyzBzWNs-uEE5HFmkQJHDpJOEaKkNjISGHWGL9Ew72Xvh_bVJXUkOzXah-y9QWnumv2/exec"; 
 
-    // Helper untuk mengubah tanggal dari input/server ke format konsisten: YYYY-MM-DD HH:MM
+    // Helper untuk mengoreksi otomatis jika jam dari server berformat UTC/GMT internasional
     function formatWaktuKonsisten(strWaktu) {
         if (!strWaktu) return '-';
-        return String(strWaktu).replace('T', ' ').substring(0, 16);
+        const teks = String(strWaktu);
+        
+        // Jika server mengembalikan format ISO UTC (mengandung huruf 'Z' di akhir)
+        if (teks.endsWith('Z') || teks.includes('GMT')) {
+            const d = new Date(teks);
+            const tahun = d.getFullYear();
+            const bulan = String(d.getMonth() + 1).padStart(2, '0');
+            const tanggal = String(d.getDate()).padStart(2, '0');
+            const jam = String(d.getHours()).padStart(2, '0');
+            const menit = String(d.getMinutes()).padStart(2, '0');
+            return `${tahun}-${bulan}-${tanggal} ${jam}:${menit}`;
+        }
+        
+        return teks.replace('T', ' ').substring(0, 16);
     }
 
-    // Setup Waktu Default Tanpa Perubahan Zona Waktu
+    // Setup Waktu Default
     function setWaktuSaatIni(idInput) {
         const now = new Date();
         const tahun = now.getFullYear();
@@ -173,7 +186,6 @@
         document.getElementById(idInput).value = `${tahun}-${bulan}-${tanggal}T${jam}:${menit}`;
     }
     
-    // Mendapatkan tanggal hari ini format YYYY-MM-DD
     function getTanggalHariIni() {
         const now = new Date();
         const tahun = now.getFullYear();
@@ -209,7 +221,6 @@
         document.getElementById(idHalaman).classList.add('active');
         
         if(idHalaman === 'halamanDokumen') {
-            // Otomatis set filter ke hari ini saat halaman tanda terima dibuka
             document.getElementById('filterTanggalDok').value = getTanggalHariIni();
             muatData('Tanda Terima', 'hasilDokumen');
             setTimeout(() => { resizeCanvas(); }, 100);
@@ -277,7 +288,6 @@
     function simpanTandaTerima() {
         const wkt = formatWaktuKonsisten(document.getElementById('waktu1').value);
         
-        // Gabungkan semua dokumen yang diinput menjadi satu teks
         const semuaDokumen = Array.from(document.querySelectorAll('.input-dokumen'))
             .map(input => input.value.trim())
             .filter(val => val !== "")
@@ -388,7 +398,7 @@
         });
     }
 
-    // 1. FILTER KHUSUS TANDA TERIMA DOKUMEN (Otomatis Hari Ini & Urut Terbaru)
+    // 1. FILTER KHUSUS TANDA TERIMA DOKUMEN
     function filterDokumen() {
         const tglFilter = document.getElementById('filterTanggalDok').value;
         const kataKunci = document.getElementById('cariDokumen').value.toLowerCase();
@@ -401,7 +411,6 @@
             return cocokTanggal && cocokNama;
         });
 
-        // Urutkan dari jam terbaru ke terlama
         hasil.reverse();
         tampilkanKeLayar('Tanda Terima', 'hasilDokumen', hasil);
     }
@@ -412,7 +421,7 @@
         filterDokumen();
     }
 
-    // 2. FILTER KHUSUS TIKET EMERALD (Otomatis Hari Ini & Urut Jam Pagi->Malam)
+    // 2. FILTER KHUSUS TIKET EMERALD
     function filterTiket() {
         const tglFilter = document.getElementById('filterTanggalTiket').value;
         const kataKunci = document.getElementById('cariTiket').value.toLowerCase();
@@ -425,7 +434,6 @@
             return cocokTanggal && cocokBooking;
         });
 
-        // Urutkan dari pagi ke malam
         hasil.sort((a, b) => {
             return formatWaktuKonsisten(a[0]).localeCompare(formatWaktuKonsisten(b[0]));
         });
