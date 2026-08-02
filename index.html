@@ -146,18 +146,32 @@
     // MASUKKAN LINK URL APPS SCRIPT-MU DI BAWAH INI
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxLhlo-R9VY6J-hxlo3pO4JquvN-vW5OpVd37GkBkh5OYC-6z1bywH_xKbt5TlBT3pX/exec"; 
 
-    // Setup Waktu Default
+    // Helper untuk mengubah tanggal dari input/server ke format sederhana yang konsisten: YYYY-MM-DD HH:MM
+    function formatWaktuKonsisten(strWaktu) {
+        if (!strWaktu) return '-';
+        // Ambil 16 karakter pertama dan ganti 'T' dengan spasi (Contoh: "2026-08-02T10:30" menjadi "2026-08-02 10:30")
+        return String(strWaktu).replace('T', ' ').substring(0, 16);
+    }
+
+    // Setup Waktu Default Tanpa Perubahan Zona Waktu
     function setWaktuSaatIni(idInput) {
         const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        document.getElementById(idInput).value = now.toISOString().slice(0,16);
+        const tahun = now.getFullYear();
+        const bulan = String(now.getMonth() + 1).padStart(2, '0');
+        const tanggal = String(now.getDate()).padStart(2, '0');
+        const jam = String(now.getHours()).padStart(2, '0');
+        const menit = String(now.getMinutes()).padStart(2, '0');
+        
+        document.getElementById(idInput).value = `${tahun}-${bulan}-${tanggal}T${jam}:${menit}`;
     }
     
-    // Fungsi untuk mendapatkan tanggal hari ini format YYYY-MM-DD
+    // Fungsi untuk mendapatkan tanggal hari ini format YYYY-MM-DD lokal
     function getTanggalHariIni() {
         const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        return now.toISOString().slice(0,10);
+        const tahun = now.getFullYear();
+        const bulan = String(now.getMonth() + 1).padStart(2, '0');
+        const tanggal = String(now.getDate()).padStart(2, '0');
+        return `${tahun}-${bulan}-${tanggal}`;
     }
 
     setWaktuSaatIni('waktu1');
@@ -173,7 +187,6 @@
             setTimeout(() => { resizeCanvas(); }, 100);
         }
         if(idHalaman === 'halamanTiket') {
-            // Otomatis set filter ke hari ini saat halaman tiket dibuka
             document.getElementById('filterTanggalTiket').value = getTanggalHariIni();
             muatData('Tiket Emerald', 'hasilTiket');
         }
@@ -234,7 +247,7 @@
 
     // Simpan Tanda Terima
     function simpanTandaTerima() {
-        const wkt = document.getElementById('waktu1').value;
+        const wkt = formatWaktuKonsisten(document.getElementById('waktu1').value);
         const namaD = document.getElementById('namaDokumen').value;
         const pny = document.getElementById('namaPenyerah').value;
         const pnr = document.getElementById('namaPenerima').value;
@@ -245,7 +258,7 @@
 
         const dataKirim = {
             action: "simpanTandaTerima", sheetName: "Tanda Terima",
-            waktu: wkt.replace('T', ' '), namaDokumen: namaD, namaPenyerah: pny, namaPenerima: pnr, keterangan: ket, ttd: ttdData
+            waktu: wkt, namaDokumen: namaD, namaPenyerah: pny, namaPenerima: pnr, keterangan: ket, ttd: ttdData
         };
 
         kirimKeServer(dataKirim, 'btnSimpan1', 'status1').then(() => {
@@ -260,7 +273,7 @@
 
     // Simpan Tiket
     function simpanTiket() {
-        const wkt = document.getElementById('waktu2').value;
+        const wkt = formatWaktuKonsisten(document.getElementById('waktu2').value);
         const noB = document.getElementById('noBooking').value;
         const jml = document.getElementById('jumlahPenumpang').value;
         const pnr = document.getElementById('namaPenerimaTiket').value;
@@ -269,7 +282,7 @@
 
         const dataKirim = {
             action: "simpanTiket", sheetName: "Tiket Emerald",
-            waktu: wkt.replace('T', ' '), noBooking: noB, jumlahPenumpang: jml, namaPenerima: pnr
+            waktu: wkt, noBooking: noB, jumlahPenumpang: jml, namaPenerima: pnr
         };
 
         kirimKeServer(dataKirim, 'btnSimpan2', 'status2').then(() => {
@@ -296,7 +309,6 @@
             // Simpan ke cache tanpa header baris pertama
             dataCache[sheetName] = arrayData.slice(1);
             
-            // Terapkan filter sesuai tab yang aktif
             if(sheetName === 'Tanda Terima') {
                 filterDokumen();
             } else {
@@ -319,9 +331,12 @@
             const card = document.createElement('div');
             card.className = sheetName === 'Tanda Terima' ? 'card' : 'card card-tiket';
             
+            // Format waktu sederhana (contoh: "2026-08-02 10:30")
+            const waktuBersih = formatWaktuKonsisten(baris[0]);
+
             if(sheetName === 'Tanda Terima') {
                 card.innerHTML = `
-                    <p><strong>🕒 Waktu:</strong> ${baris[0]}</p>
+                    <p><strong>🕒 Waktu:</strong> ${waktuBersih}</p>
                     <p><strong>📄 Dokumen:</strong> ${baris[1]}</p>
                     <p><strong>📤 Penyerah:</strong> ${baris[2]}</p>
                     <p><strong>📥 Penerima:</strong> ${baris[3]}</p>
@@ -331,7 +346,7 @@
                 `;
             } else {
                 card.innerHTML = `
-                    <p><strong>🕒 Waktu:</strong> ${baris[0]}</p>
+                    <p><strong>🕒 Waktu:</strong> ${waktuBersih}</p>
                     <p><strong>🔖 No Booking:</strong> ${baris[1]}</p>
                     <p><strong>👥 Penumpang:</strong> ${baris[2]} Orang</p>
                     <p><strong>📥 Penerima:</strong> ${baris[3]}</p>
@@ -343,18 +358,17 @@
 
     // 1. FILTER KHUSUS TANDA TERIMA DOKUMEN
     function filterDokumen() {
-        const tglFilter = document.getElementById('filterTanggalDok').value; // YYYY-MM-DD
+        const tglFilter = document.getElementById('filterTanggalDok').value;
         const kataKunci = document.getElementById('cariDokumen').value.toLowerCase();
 
         let hasil = dataCache['Tanda Terima'].filter(baris => {
-            const waktuStr = String(baris[0]); // Contoh: "2026-08-02 14:30"
+            const waktuStr = formatWaktuKonsisten(baris[0]);
             const cocokTanggal = tglFilter ? waktuStr.startsWith(tglFilter) : true;
             const cocokNama = String(baris[1]).toLowerCase().includes(kataKunci) || 
                               String(baris[3]).toLowerCase().includes(kataKunci);
             return cocokTanggal && cocokNama;
         });
 
-        // Urutkan dari yang terbaru ke terlama
         hasil.reverse();
         tampilkanKeLayar('Tanda Terima', 'hasilDokumen', hasil);
     }
@@ -367,11 +381,11 @@
 
     // 2. FILTER KHUSUS TIKET EMERALD (Otomatis Hari Ini & Urut Jam)
     function filterTiket() {
-        const tglFilter = document.getElementById('filterTanggalTiket').value; // YYYY-MM-DD
+        const tglFilter = document.getElementById('filterTanggalTiket').value;
         const kataKunci = document.getElementById('cariTiket').value.toLowerCase();
 
         let hasil = dataCache['Tiket Emerald'].filter(baris => {
-            const waktuStr = String(baris[0]);
+            const waktuStr = formatWaktuKonsisten(baris[0]);
             const cocokTanggal = tglFilter ? waktuStr.startsWith(tglFilter) : true;
             const cocokBooking = String(baris[1]).toLowerCase().includes(kataKunci) || 
                                  String(baris[3]).toLowerCase().includes(kataKunci);
@@ -380,7 +394,7 @@
 
         // URUTKAN BERDASARKAN JAM BERURUTAN (Terkecil/Pagi -> Terbesar/Malam)
         hasil.sort((a, b) => {
-            return String(a[0]).localeCompare(String(b[0]));
+            return formatWaktuKonsisten(a[0]).localeCompare(formatWaktuKonsisten(b[0]));
         });
 
         tampilkanKeLayar('Tiket Emerald', 'hasilTiket', hasil);
