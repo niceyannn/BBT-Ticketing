@@ -30,6 +30,7 @@
         button.clear { width: 100%; background-color: #e74c3c; color: white; border: none; border-radius: 6px; margin-top: 5px; margin-bottom: 15px; padding: 8px; font-size: 0.85rem; cursor: pointer;}
         button.refresh { width: 100%; background-color: #f39c12; color: white; border: none; border-radius: 6px; margin-top: 10px; padding: 10px; font-weight: bold; cursor: pointer;}
         button.btn-reset { background: #95a5a6; color: white; border: none; padding: 10px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; width: 100%; margin-bottom: 10px; font-weight: bold;}
+        button.btn-tambah-dok { background: #3498db; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; width: 100%; margin-top: -5px; margin-bottom: 12px; font-weight: bold; }
         button:disabled { background-color: #95a5a6; cursor: not-allowed; }
         
         /* CARD HASIL */
@@ -40,6 +41,8 @@
         hr { border: 0; height: 1px; background: #eee; margin: 25px 0; }
         .loading-text { text-align: center; font-style: italic; color: #7f8c8d; font-size: 0.9rem; margin-top: 10px; }
         .filter-box { background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #e9ecef; }
+        .baris-dokumen { display: flex; gap: 5px; margin-bottom: 5px; }
+        .btn-hapus-dok { background: #e74c3c; color: white; border: none; border-radius: 6px; width: 40px; cursor: pointer; font-weight: bold; margin-top: 5px; margin-bottom: 12px; }
     </style>
 </head>
 <body>
@@ -71,7 +74,10 @@
         <input type="datetime-local" id="waktu1">
         
         <label>Nama Dokumen</label>
-        <input type="text" id="namaDokumen" placeholder="Contoh: Invoice PT ABC">
+        <div id="wadahDokumen">
+            <input type="text" class="input-dokumen" placeholder="Contoh: Invoice PT ABC">
+        </div>
+        <button class="btn-tambah-dok" onclick="tambahBarisDokumen()">➕ Tambah Dokumen Lain</button>
         
         <label>Nama Penyerah</label>
         <input type="text" id="namaPenyerah" placeholder="Nama yang menyerahkan">
@@ -93,9 +99,12 @@
         
         <!-- BAGIAN FILTER DOKUMEN -->
         <div class="filter-box">
-            <label style="margin-top:0;">🔍 Filter Hari / Nama Dokumen:</label>
+            <label style="margin-top:0;">📅 Filter Hari (Otomatis Hari Ini):</label>
             <input type="date" id="filterTanggalDok" onchange="filterDokumen()">
+            
+            <label>🔍 Cari Nama Dokumen / Penerima:</label>
             <input type="text" id="cariDokumen" placeholder="Cari nama dokumen / penerima..." onkeyup="filterDokumen()">
+            
             <button class="btn-reset" onclick="resetFilterDokumen()">Tampilkan Semua Hari</button>
         </div>
 
@@ -146,10 +155,9 @@
     // MASUKKAN LINK URL APPS SCRIPT-MU DI BAWAH INI
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxLhlo-R9VY6J-hxlo3pO4JquvN-vW5OpVd37GkBkh5OYC-6z1bywH_xKbt5TlBT3pX/exec"; 
 
-    // Helper untuk mengubah tanggal dari input/server ke format sederhana yang konsisten: YYYY-MM-DD HH:MM
+    // Helper untuk mengubah tanggal dari input/server ke format konsisten: YYYY-MM-DD HH:MM
     function formatWaktuKonsisten(strWaktu) {
         if (!strWaktu) return '-';
-        // Ambil 16 karakter pertama dan ganti 'T' dengan spasi (Contoh: "2026-08-02T10:30" menjadi "2026-08-02 10:30")
         return String(strWaktu).replace('T', ' ').substring(0, 16);
     }
 
@@ -165,7 +173,7 @@
         document.getElementById(idInput).value = `${tahun}-${bulan}-${tanggal}T${jam}:${menit}`;
     }
     
-    // Fungsi untuk mendapatkan tanggal hari ini format YYYY-MM-DD lokal
+    // Mendapatkan tanggal hari ini format YYYY-MM-DD
     function getTanggalHariIni() {
         const now = new Date();
         const tahun = now.getFullYear();
@@ -177,12 +185,32 @@
     setWaktuSaatIni('waktu1');
     setWaktuSaatIni('waktu2');
 
+    // Fungsi Tambah & Reset Baris Input Dokumen
+    function tambahBarisDokumen() {
+        const wadah = document.getElementById('wadahDokumen');
+        const baris = document.createElement('div');
+        baris.className = 'baris-dokumen';
+        baris.innerHTML = `
+            <input type="text" class="input-dokumen" placeholder="Nama dokumen berikutnya...">
+            <button class="btn-hapus-dok" onclick="this.parentElement.remove()">X</button>
+        `;
+        wadah.appendChild(baris);
+    }
+
+    function resetWadahDokumen() {
+        document.getElementById('wadahDokumen').innerHTML = `
+            <input type="text" class="input-dokumen" placeholder="Contoh: Invoice PT ABC">
+        `;
+    }
+
     // Setup Navigasi Halaman
     function pindahHalaman(idHalaman) {
         document.querySelectorAll('.halaman').forEach(h => h.classList.remove('active'));
         document.getElementById(idHalaman).classList.add('active');
         
         if(idHalaman === 'halamanDokumen') {
+            // Otomatis set filter ke hari ini saat halaman tanda terima dibuka
+            document.getElementById('filterTanggalDok').value = getTanggalHariIni();
             muatData('Tanda Terima', 'hasilDokumen');
             setTimeout(() => { resizeCanvas(); }, 100);
         }
@@ -248,21 +276,27 @@
     // Simpan Tanda Terima
     function simpanTandaTerima() {
         const wkt = formatWaktuKonsisten(document.getElementById('waktu1').value);
-        const namaD = document.getElementById('namaDokumen').value;
+        
+        // Gabungkan semua dokumen yang diinput menjadi satu teks
+        const semuaDokumen = Array.from(document.querySelectorAll('.input-dokumen'))
+            .map(input => input.value.trim())
+            .filter(val => val !== "")
+            .join(', ');
+
         const pny = document.getElementById('namaPenyerah').value;
         const pnr = document.getElementById('namaPenerima').value;
         const ket = document.getElementById('keterangan').value;
         const ttdData = canvas.toDataURL();
 
-        if(!namaD || !pnr) return alert("Nama Dokumen dan Penerima wajib diisi!");
+        if(!semuaDokumen || !pnr) return alert("Nama Dokumen dan Penerima wajib diisi!");
 
         const dataKirim = {
             action: "simpanTandaTerima", sheetName: "Tanda Terima",
-            waktu: wkt, namaDokumen: namaD, namaPenyerah: pny, namaPenerima: pnr, keterangan: ket, ttd: ttdData
+            waktu: wkt, namaDokumen: semuaDokumen, namaPenyerah: pny, namaPenerima: pnr, keterangan: ket, ttd: ttdData
         };
 
         kirimKeServer(dataKirim, 'btnSimpan1', 'status1').then(() => {
-            document.getElementById('namaDokumen').value = '';
+            resetWadahDokumen();
             document.getElementById('namaPenyerah').value = '';
             document.getElementById('namaPenerima').value = '';
             document.getElementById('keterangan').value = '';
@@ -306,7 +340,6 @@
             const response = await fetch(SCRIPT_URL + "?sheetName=" + encodeURIComponent(sheetName));
             const arrayData = await response.json();
             
-            // Simpan ke cache tanpa header baris pertama
             dataCache[sheetName] = arrayData.slice(1);
             
             if(sheetName === 'Tanda Terima') {
@@ -331,7 +364,6 @@
             const card = document.createElement('div');
             card.className = sheetName === 'Tanda Terima' ? 'card' : 'card card-tiket';
             
-            // Format waktu sederhana (contoh: "2026-08-02 10:30")
             const waktuBersih = formatWaktuKonsisten(baris[0]);
 
             if(sheetName === 'Tanda Terima') {
@@ -356,7 +388,7 @@
         });
     }
 
-    // 1. FILTER KHUSUS TANDA TERIMA DOKUMEN
+    // 1. FILTER KHUSUS TANDA TERIMA DOKUMEN (Otomatis Hari Ini & Urut Terbaru)
     function filterDokumen() {
         const tglFilter = document.getElementById('filterTanggalDok').value;
         const kataKunci = document.getElementById('cariDokumen').value.toLowerCase();
@@ -369,6 +401,7 @@
             return cocokTanggal && cocokNama;
         });
 
+        // Urutkan dari jam terbaru ke terlama
         hasil.reverse();
         tampilkanKeLayar('Tanda Terima', 'hasilDokumen', hasil);
     }
@@ -379,7 +412,7 @@
         filterDokumen();
     }
 
-    // 2. FILTER KHUSUS TIKET EMERALD (Otomatis Hari Ini & Urut Jam)
+    // 2. FILTER KHUSUS TIKET EMERALD (Otomatis Hari Ini & Urut Jam Pagi->Malam)
     function filterTiket() {
         const tglFilter = document.getElementById('filterTanggalTiket').value;
         const kataKunci = document.getElementById('cariTiket').value.toLowerCase();
@@ -392,7 +425,7 @@
             return cocokTanggal && cocokBooking;
         });
 
-        // URUTKAN BERDASARKAN JAM BERURUTAN (Terkecil/Pagi -> Terbesar/Malam)
+        // Urutkan dari pagi ke malam
         hasil.sort((a, b) => {
             return formatWaktuKonsisten(a[0]).localeCompare(formatWaktuKonsisten(b[0]));
         });
